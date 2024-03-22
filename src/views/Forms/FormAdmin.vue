@@ -14,7 +14,7 @@
               :key="index"
               class="list-group-item d-flex justify-content-between align-items-center"
             >
-              <span>{{ savedForm.title }}</span>
+              <span>{{ savedForm.Nombre }}</span>
               <div>
                 <button
                   @click="loadSavedForm(savedForm)"
@@ -152,21 +152,26 @@
 </template>
 
 <script lang="ts">
-import { ref, defineComponent } from "vue";
+import { ref, defineComponent, onMounted } from "vue";
+import { apiApp } from "@/core/api/apiApp";
+import { useRoute } from "vue-router";
 
 export interface questions {
   tipo: string;
   pregunta: string;
   opciones?: { nombre: string; valor: string }[]; // Arreglo de objetos con nombre y valor
 }
-interface SavedForm {
-  title: string;
-  questions: questions[];
-  description: string;
+export interface SavedForm {
+  idCuestionario: number;
+  Nombre: string;
+  Descripcion: string;
+  Preguntas: questions[];
 }
 
 export default defineComponent({
   setup() {
+    const route = useRoute();
+    const formId = ref();
     const questions = ref<questions[]>([]);
     const formTitle = ref<string>("");
     const formDesc = ref<string>("");
@@ -203,37 +208,59 @@ export default defineComponent({
         questions.value[index].opciones = []; // Reiniciar opciones si es pregunta de opción múltiple
       }
     };
-    const submitForm = () => {
-      // Aquí puedes enviar el formulario o hacer lo que necesites con las preguntas
-      console.log("Formulario enviado:", {
-        title: formTitle.value,
-        questions: questions.value,
-        description: formDesc.value,
-      });
+    const submitForm = async () => {
+      try {
+        // Crear el objeto formData para enviar al servidor
+        const formData = {
+          Nombre: formTitle.value,
+          Descripcion: formDesc.value,
+        };
 
-      // Guardar el formulario
-      savedForms.value.push({
-        title: formTitle.value,
-        questions: [...questions.value],
-        description: formDesc.value,
-      });
+        // Enviar formData al servidor usando una petición POST para crear el formulario
+        const responseForm = await apiApp.post("Cuestionario/", formData);
+        const formId = responseForm.data; // Obtener el ID del formulario creado
 
-      // Limpiar el formulario después de guardar
-      clearForm();
+        // Ahora asociamos las preguntas al formulario usando el ID del formulario
+        const preguntasData = questions.value.map((pregunta) => ({
+          Pregunta: pregunta.pregunta,
+          Tipo: pregunta.tipo,
+          idCuestionario: formId,
+        }));
+
+        // Enviar las preguntas asociadas al formulario al servidor usando una petición POST
+        await apiApp.post("Pregunta/", preguntasData);
+
+        console.log(preguntasData);
+        // Limpiar el formulario después de enviar los datos correctamente
+        clearForm();
+      } catch (error) {
+        console.error("Error al enviar formulario:", error);
+      }
     };
     const clearForm = () => {
       formTitle.value = "";
       formDesc.value = "";
       questions.value = [];
     };
-    const loadSavedForm = (savedForm: SavedForm) => {
-      formTitle.value = savedForm.title;
-      formDesc.value = savedForm.description;
-      questions.value = [...savedForm.questions];
+    const loadSavedForm = (savedForm) => {
+      formId.value = savedForm.idCuestionario;
+      formTitle.value = savedForm.Nombre;
+      formDesc.value = savedForm.Descripcion;
+      // questions.value = [...savedForm.Preguntas];
     };
     const removeSavedForm = (index: number) => {
       savedForms.value.splice(index, 1);
     };
+
+    onMounted(async () => {
+      try {
+        const response = await apiApp.get("Cuestionarios/");
+        const savedForm = response.data;
+        loadSavedForm(savedForm); // Cargar el formulario guardado
+      } catch (error) {
+        console.error("Error al cargar el formulario guardado:", error);
+      }
+    });
 
     return {
       addQuestion,
@@ -241,6 +268,7 @@ export default defineComponent({
       submitForm,
       questions,
       formTitle,
+      formId,
       formDesc,
       loadSavedForm,
       savedForms,
