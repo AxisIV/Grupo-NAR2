@@ -33,6 +33,11 @@
               </div>
             </li>
           </ul>
+          <div class="py-3 text-center">
+            <button type="submit" class="btn btn-primary">
+              Nuevo Formulario <i class="bi bi-file-earmark-plus"></i>
+            </button>
+          </div>
         </div>
       </div>
       <!-- /Sidebar -->
@@ -64,84 +69,90 @@
                       >Pregunta {{ index + 1 }}:</label
                     >
                     <input
-                      v-if="question.tipo === 'text'"
                       type="text"
                       v-model="question.pregunta"
-                      class="form-control form-input"
-                      placeholder="Ingrese una pregunta de texto"
+                      class="form-control form-control-lg form-control-solid mb-3"
+                      placeholder="Ingrese una pregunta"
                     />
-                    <div v-if="question.tipo === 'radio' && question.opciones">
-                      <input
-                        type="text"
-                        v-model="question.pregunta"
-                        class="form-control form-input"
-                        placeholder="Ingrese una pregunta"
-                      />
-                      <div
-                        v-for="(opcion, opcIndex) in question.opciones"
-                        :key="opcIndex"
-                      >
-                        <div class="input-group mb-3">
-                          <input
-                            type="text"
-                            :id="'opcion-' + index + '-' + opcIndex"
-                            :value="opcion.valor"
-                            v-model="question.opciones[opcIndex].valor"
-                            class="form-control"
-                            placeholder="Opción"
-                          />
-                          <button
-                            type="button"
-                            @click="removeOption(index, opcIndex)"
-                            class="btn btn-outline-danger"
-                          >
-                            <i class="bi bi-x fs-2 fw-700"></i>
-                          </button>
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        @click="addOption(index)"
-                        class="btn btn-success mt-2 my-3"
-                      >
-                        Agregar Opción
-                      </button>
-                    </div>
                   </div>
-                  <div class="col-md-4">
-                    <div class="mb-3">
+                  <div class="col-md-3">
+                    <div>
                       <label for="tipoPregunta" class="form-label"
                         >Tipo de Pregunta</label
                       >
                       <select
                         v-model="questions[index].tipo"
                         @change="updateQuestionType(index, $event.target.value)"
-                        class="form-select"
+                        class="form-control form-select"
                       >
                         <option value="text">Texto</option>
                         <option value="radio">Opción múltiple</option>
                       </select>
                     </div>
                   </div>
+                  <div class="col-md-1">
+                    <div class="mt-7">
+                      <button
+                        type="button"
+                        @click="removeQuestion(index)"
+                        class="btn btn-remove"
+                      >
+                        <i class="bi bi-trash fs-1 fw-bold"></i>
+                      </button>
+                    </div>
+                  </div>
                 </div>
-                <button
-                  type="button"
-                  @click="removeQuestion(index)"
-                  class="btn btn-danger mt-2 my-3"
-                >
-                  Eliminar Pregunta
-                </button>
+                <div class="row">
+                  <div v-if="question.tipo === 'radio' && question.opciones">
+                    <div
+                      v-for="(opcion, opcIndex) in question.opciones"
+                      :key="opcIndex"
+                    >
+                      <div
+                        class="input-group"
+                        style="margin-top: 12px; margin-bottom: 12px"
+                      >
+                        <input
+                          type="text"
+                          :id="'opcion-' + index + '-' + opcIndex"
+                          :value="opcion.valor"
+                          v-model="question.opciones[opcIndex].valor"
+                          class="form-control"
+                          placeholder="Opción"
+                        />
+                        <button
+                          type="button"
+                          @click="removeOption(index, opcIndex)"
+                          class="btn btn-outline-danger"
+                        >
+                          <i class="bi bi-x fs-2 fw-700"></i>
+                        </button>
+                      </div>
+                    </div>
+                    <span
+                      @click="addOption(index)"
+                      style="cursor: pointer; padding: 12px"
+                    >
+                      <i
+                        style="font-size: 1.5rem"
+                        class="bi bi-plus-circle"
+                      ></i>
+                      <span class="text-muted fs-3">Agregar Opcion</span>
+                    </span>
+                  </div>
+                </div>
               </div>
-
               <button
                 type="button"
                 @click="addQuestion"
-                class="btn btn-success btn-sm"
+                class="btn btn-primary me-2"
               >
                 Agregar Pregunta
+                <i class="bi bi-plus-lg"></i>
               </button>
-              <button type="submit" class="btn btn-primary btn-sm ms-2">
-                Crear Formulario
+              <button @click="saveForm" class="btn btn-primary ms-2">
+                Guardar Formulario
+                <i class="bi bi-floppy"></i>
               </button>
             </form>
           </div>
@@ -237,6 +248,39 @@ export default defineComponent({
         console.error("Error al enviar formulario:", error);
       }
     };
+    const saveForm = async () => {
+      try {
+        // Crear el objeto formData para enviar al servidor
+        const formData = {
+          idCuestionario: formId.value, // ID del formulario que se está actualizando
+          Nombre: formTitle.value,
+          Descripcion: formDesc.value,
+        };
+        // Enviar formData al servidor usando una petición PUT para actualizar el formulario
+        const response = await apiApp.put(
+          `Cuestionario/${formId.value}`,
+          formData
+        );
+
+        const formPreguntas = {
+          Preguntas: questions.value.map((pregunta) => ({
+            Pregunta: pregunta.pregunta,
+            Tipo: pregunta.tipo,
+            opciones: pregunta.opciones, // Si las preguntas tienen opciones, incluirlas también
+          })),
+        };
+        const responseQ = await apiApp.put(
+          `Pregunta/${formId.value}`,
+          formPreguntas
+        );
+
+        console.log("Formulario actualizado correctamente:", response.data);
+        console.log("Formulario actualizado correctamente:", responseQ.data);
+      } catch (error) {
+        console.error("Error al actualizar formulario:", error);
+      }
+    };
+
     const clearForm = () => {
       formTitle.value = "";
       formDesc.value = "";
@@ -246,17 +290,29 @@ export default defineComponent({
       formId.value = savedForm.idCuestionario;
       formTitle.value = savedForm.Nombre;
       formDesc.value = savedForm.Descripcion;
-      // questions.value = [...savedForm.Preguntas];
+      questions.value = [...savedForm.Preguntas];
     };
-    const removeSavedForm = (index: number) => {
-      savedForms.value.splice(index, 1);
+    const removeSavedForm = async (index: number) => {
+      try {
+        const formToDelete = savedForms.value[index]; // Obtener el formulario a eliminar
+        const idCuestionario = formToDelete.idCuestionario; // Obtener el ID del formulario
+
+        // Enviar una solicitud DELETE al endpoint correspondiente con el ID del formulario
+        await apiApp.delete(`Cuestionario/${idCuestionario}`);
+
+        // Si la solicitud DELETE es exitosa, remover el formulario de la lista en el frontend
+        savedForms.value.splice(index, 1);
+
+        console.log("Formulario eliminado correctamente");
+      } catch (error) {
+        console.error("Error al eliminar formulario:", error);
+      }
     };
 
     onMounted(async () => {
       try {
         const response = await apiApp.get("Cuestionarios/");
-        const savedForm = response.data;
-        loadSavedForm(savedForm); // Cargar el formulario guardado
+        savedForms.value = response.data;
       } catch (error) {
         console.error("Error al cargar el formulario guardado:", error);
       }
@@ -272,6 +328,7 @@ export default defineComponent({
       formDesc,
       loadSavedForm,
       savedForms,
+      saveForm,
       removeSavedForm,
       addOption,
       removeOption,
