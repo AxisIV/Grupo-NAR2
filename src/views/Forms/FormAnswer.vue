@@ -1,185 +1,167 @@
 <template>
-  <div class="form">
-    <div class="container mt-10 px-12">
-      <div class="text-center">
-        <h1 class="card text-uppercase py-6 fw-bold" style="font-size: 3rem">
-          {{ formData.title }}
-        </h1>
-      </div>
-      <div class="card mt-5">
-        <div class="row">
-          <div class="col-md-5">
-            <img
-              src="https://img.freepik.com/vector-premium/concepto-prueba-caracter-personas-que-responden-lista-verificacion-cuestionarios-resumen-resultados-exito-examen-linea-formulario-cuestionario-educacion-linea-metafora-encuesta_269730-429.jpg"
-              class="img-fluid img-thumbnail text-center"
-              style="width: 24rem; height: 24rem; object-fit: cover"
-            />
-          </div>
-          <div class="col-md-5">
-            <p style="margin-top: 15px">{{ formData.description }}</p>
-          </div>
-        </div>
-      </div>
-      <div class="card mt-5">
-        <div>
-          <div
-            v-for="(question, index) in formData.questions"
-            :key="index"
-            class="d-flex justify-content-center align-content-center flex-wrap px-12 fs-4"
-          >
-            <template v-if="question.tipo === 'text'">
-              <label>{{ question.pregunta }}</label>
-              <input
-                type="text"
-                v-model="respuestas[index]"
-                class="form-control form-input"
-                placeholder="Ingrese su respuesta"
-              />
-            </template>
-            <template v-else-if="question.tipo === 'radio'">
-              <label>{{ question.pregunta }}</label>
-              <div class="opciones-container">
-                <div
-                  v-for="(opcion, opcIndex) in question.opciones"
-                  :key="opcIndex"
-                  class="opcion-item"
-                >
-                  <input
-                    type="radio"
-                    :id="'opcion-' + index + '-' + opcIndex"
-                    :value="opcion.valor"
-                    v-model="respuestas[index]"
-                    class="form-check-input"
-                  />
-                  <label
-                    :for="'opcion-' + index + '-' + opcIndex"
-                    class="form-check-label"
-                    >{{ opcion.nombre }}</label
-                  >
-                </div>
-              </div>
-            </template>
-          </div>
-        </div>
+  <div class="row card">
+    <div class="col-md-3">
+      <img
+        src="https://www.mlsvallarta.com/wp-content/uploads/mls-images/13198/GrupoNAR_Logotipo_2Rojo-340x340-c.jpg"
+        style="height: 70px; width: 70px; margin-left: 50px"
+      />
+    </div>
+  </div>
+  <div class="container p-6 mt-10">
+    <div class="progress">
+      <div
+        class="progress-bar"
+        role="progressbar"
+        :style="porcentajeProgreso"
+        aria-valuenow="25"
+        aria-valuemin="0"
+        aria-valuemax="100"
+      >
+        <span class="fs-4">
+          {{ ((PreguntaActual + 1) / Preguntas.length) * 100 }}%</span
+        >
       </div>
     </div>
-
-    <div class="container mt-5">
-      <form @submit.prevent="submitResponse">
-        <!-- <div class="card p-4">
-          <label class="fs-5 mb-2" style="font-weight: 500">Respuestas</label>
-          <div v-for="(respuesta, index) in respuestas" :key="index">
-            <p>{{ index + 1 }}. {{ respuesta }}</p>
-          </div>
-        </div> -->
-        <div class="mt-4 d-flex justify-content-center">
-          <button type="submit" class="btn btn-primary btn-lg">
-            Enviar Respuestas
-          </button>
+    <div v-if="Preguntas.length > 0">
+      <div class="pregunta">
+        <span>{{ Preguntas[PreguntaActual].Pregunta }}</span>
+      </div>
+      <div class="form-group mt-5" v-if="getQuestionType() === 'text'">
+        <input
+          type="text"
+          class="form-control"
+          placeholder="Escribe tu respuesta"
+        />
+      </div>
+      <div class="form-group mt-5" v-else-if="getQuestionType() === 'radio'">
+        <div
+          class="custom-control custom-radio custom-control-inline"
+          v-for="(option, index) in getQuestionOptions()"
+          :key="index"
+        >
+          <label>
+            <input type="radio" class="option-input radio" name="example" />
+            Radio option
+          </label>
+          <label :for="'option' + index">{{ option.valor }}</label>
         </div>
-      </form>
+      </div>
+      <div class="d-flex justify-content-center mt-12">
+        <button
+          class="btn btn-primary"
+          @click="nextQuestion"
+          v-if="PreguntaActual !== Preguntas.length - 1"
+        >
+          Siguiente
+        </button>
+        <button
+          class="btn btn-success"
+          @click="finish"
+          v-if="PreguntaActual == Preguntas.length"
+        >
+          Finalizar
+        </button>
+        <button
+          class="btn btn-dark"
+          @click="previousQuestion"
+          v-if="PreguntaActual != 0"
+        >
+          Atras
+        </button>
+      </div>
     </div>
   </div>
 </template>
 
 <script lang="ts">
-import { ref } from "vue";
+import { apiApp } from "@/core/api/apiApp";
+import { defineComponent, onMounted, ref, computed } from "vue";
 
-export default {
-  data() {
+interface Question {
+  idPregunta: number;
+  Pregunta: string;
+  idCuestionario: number;
+  Tipo: string;
+}
+
+export default defineComponent({
+  name: "FormAnswer",
+  setup() {
+    const Preguntas = ref<Question[]>([]);
+    const PreguntaActual = ref(0);
+    const respuestas = ref([]);
+
+    onMounted(async () => {
+      console.log("FormAnswer");
+      await apiApp.get("Preguntas/51").then((response) => {
+        Preguntas.value = response.data;
+        console.log(Preguntas.value);
+      });
+    });
+
+    const getQuestionType = () => {
+      const tipo = JSON.parse(Preguntas.value[PreguntaActual.value].Tipo);
+      return tipo.tipo;
+    };
+
+    const getQuestionOptions = () => {
+      const tipo = JSON.parse(Preguntas.value[PreguntaActual.value].Tipo);
+      return tipo.opciones;
+    };
+
+    const nextQuestion = () => {
+      if (PreguntaActual.value < Preguntas.value.length - 1) {
+        PreguntaActual.value++;
+      }
+    };
+
+    const previousQuestion = () => {
+      if (PreguntaActual.value > 0) {
+        PreguntaActual.value--;
+      }
+    };
+
+    const start = () => {
+      PreguntaActual.value = 0;
+    };
+
+    const finish = () => {
+      console.log("Finish");
+    };
+
+    const porcentajeProgreso = computed(() => {
+      return `width: ${
+        ((PreguntaActual.value + 1) / Preguntas.value.length) * 100
+      }%`;
+    });
+
     return {
-      formData: {
-        title: "Encuesta de Satisfacción",
-        description:
-          "Por favor, responda a las siguientes preguntas para evaluar su experiencia con nuestros servicios.",
-        questions: [
-          {
-            tipo: "text",
-            pregunta: "¿Cuál es su nombre?",
-          },
-          {
-            tipo: "radio",
-            pregunta: "¿Cómo calificaría nuestro servicio?",
-            opciones: [
-              { nombre: "Excelente", valor: "5" },
-              { nombre: "Muy Bueno", valor: "4" },
-              { nombre: "Bueno", valor: "3" },
-              { nombre: "Regular", valor: "2" },
-              { nombre: "Malo", valor: "1" },
-            ],
-          },
-          {
-            tipo: "text",
-            pregunta:
-              "¿Tiene algún comentario adicional que quisiera compartir con nosotros?",
-          },
-        ],
-      },
-      respuestas: [],
+      Preguntas,
+      porcentajeProgreso,
+      PreguntaActual,
+      getQuestionType,
+      getQuestionOptions,
+      nextQuestion,
+      previousQuestion,
+      start,
+      finish,
     };
   },
-  methods: {
-    submitResponse() {
-      console.log("Respuestas enviadas:", this.respuestas);
-      // Aquí puedes hacer algo con las respuestas, como enviarlas a un servidor
-    },
-  },
-};
+});
 </script>
 
 <style scoped>
-.form {
-  max-width: 940px;
-  margin: 30px auto;
-  background: rgb(238, 236, 232);
-  text-align: left;
-  padding: 40px;
-  border-radius: 10px;
-}
-label {
-  color: #726f6f;
-  display: inline-block;
-  margin: 25px 0 15px;
-  font-size: 1em;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  font-weight: bold;
-}
-.form-input {
-  display: block;
-  padding: 10px 6px;
-  width: 100%;
-  box-sizing: border-box;
-  font-size: 16px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  color: #555;
-  transition: border-color 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
-  margin-bottom: 15px;
+.pregunta {
+  font-size: 2rem;
+  font-weight: 500;
+  color: rgb(72, 72, 72);
+  margin-top: 5rem;
+  text-align: center;
 }
 
-.form-input:focus {
-  border-color: #66afe9;
-  box-shadow: 0 0 8px rgba(102, 103, 104, 0.6);
-}
-
-.opciones-container {
-  margin-top: 5px; /* Agregamos un margen superior para separar del label anterior */
-  width: 80%;
-}
-.opcion-item {
-  margin-bottom: 1px; /* Ajustamos el margen inferior de cada opción */
-}
-
-.form-check-input {
-  margin-top: 27px;
-  display: inline-block; /* Mostrar el input radio en línea */
-  margin-right: 10px; /* Espacio entre el input y el label */
-  cursor: pointer; /* Cambiar cursor al pasar sobre el input */
-}
-
-.form-check-label {
-  display: inline-block; /* Mostrar el label en línea */
-  cursor: pointer; /* Cambiar cursor al pasar sobre el label */
+.radioInput {
+  width: 30px;
+  height: 30px;
+  margin-right: 10px;
 }
 </style>
