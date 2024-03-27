@@ -34,7 +34,7 @@
             </li>
           </ul>
           <div class="py-3 text-center">
-            <button type="submit" class="btn btn-primary">
+            <button class="btn btn-primary">
               Nuevo Formulario <i class="bi bi-file-earmark-plus"></i>
             </button>
           </div>
@@ -44,117 +44,112 @@
       <div class="col-lg-9">
         <div class="card">
           <div class="card-body py-3">
-            <form @submit.prevent="submitForm">
-              <div class="mb-3">
-                <input
-                  type="text"
-                  v-model="formTitle"
-                  class="form-control form-title"
-                  placeholder="Título del formulario"
-                />
-                <textarea
-                  v-model="formDesc"
-                  class="form-control form-title"
-                  placeholder="Descripción del formulario"
-                ></textarea>
-              </div>
-              <div
-                v-for="(question, index) in questions"
-                :key="index"
-                class="mb-3"
-              >
-                <div class="row">
-                  <div class="col-md-8 col-12">
-                    <label :for="'question-' + index" class="form-label"
-                      >Pregunta {{ index + 1 }}:</label
+            <div class="mb-3">
+              <input
+                type="text"
+                v-model="formTitle"
+                class="form-control form-title"
+                placeholder="Título del formulario"
+              />
+              <textarea
+                v-model="formDesc"
+                class="form-control form-title"
+                placeholder="Descripción del formulario"
+              ></textarea>
+            </div>
+            <div
+              v-for="(question, index) in questions"
+              :key="index"
+              class="mb-3"
+            >
+              <div class="row">
+                <div class="col-md-8 col-12">
+                  <label :for="'question-' + index" class="form-label"
+                    >Pregunta {{ index + 1 }}:</label
+                  >
+                  <input
+                    type="text"
+                    v-model="question.pregunta"
+                    class="form-control form-control-lg form-control-solid mb-3"
+                    placeholder="Ingrese una pregunta"
+                  />
+                </div>
+                <div class="col-md-3">
+                  <div>
+                    <label for="tipoPregunta" class="form-label"
+                      >Tipo de Pregunta</label
                     >
-                    <input
-                      type="text"
-                      v-model="question.pregunta"
-                      class="form-control form-control-lg form-control-solid mb-3"
-                      placeholder="Ingrese una pregunta"
-                    />
+                    <select
+                      v-model="questions[index].tipo"
+                      @change="updateQuestionType(index, $event.target.value)"
+                      class="form-control form-select"
+                    >
+                      <option value="text">Texto</option>
+                      <option value="radio">Opción múltiple</option>
+                    </select>
                   </div>
-                  <div class="col-md-3">
-                    <div>
-                      <label for="tipoPregunta" class="form-label"
-                        >Tipo de Pregunta</label
-                      >
-                      <select
-                        v-model="questions[index].tipo"
-                        @change="updateQuestionType(index, $event.target.value)"
-                        class="form-control form-select"
-                      >
-                        <option value="text">Texto</option>
-                        <option value="radio">Opción múltiple</option>
-                      </select>
-                    </div>
+                </div>
+                <div class="col-md-1">
+                  <div class="mt-7">
+                    <button
+                      type="button"
+                      @click="removeQuestion(index)"
+                      class="btn btn-remove"
+                    >
+                      <i class="bi bi-trash fs-1 fw-bold"></i>
+                    </button>
                   </div>
-                  <div class="col-md-1">
-                    <div class="mt-7">
+                </div>
+              </div>
+              <div class="row">
+                <div v-if="question.tipo === 'radio' && question.opciones">
+                  <div
+                    v-for="(opcion, opcIndex) in question.opciones"
+                    :key="opcIndex"
+                  >
+                    <div
+                      class="input-group"
+                      style="margin-top: 12px; margin-bottom: 12px"
+                    >
+                      <input
+                        type="text"
+                        :id="'opcion-' + index + '-' + opcIndex"
+                        :value="opcion.valor"
+                        v-model="question.opciones[opcIndex].valor"
+                        class="form-control"
+                        placeholder="Opción"
+                      />
                       <button
                         type="button"
-                        @click="removeQuestion(index)"
-                        class="btn btn-remove"
+                        @click="removeOption(index, opcIndex)"
+                        class="btn btn-outline-danger"
                       >
-                        <i class="bi bi-trash fs-1 fw-bold"></i>
+                        <i class="bi bi-x fs-2 fw-700"></i>
                       </button>
                     </div>
                   </div>
-                </div>
-                <div class="row">
-                  <div v-if="question.tipo === 'radio' && question.opciones">
-                    <div
-                      v-for="(opcion, opcIndex) in question.opciones"
-                      :key="opcIndex"
-                    >
-                      <div
-                        class="input-group"
-                        style="margin-top: 12px; margin-bottom: 12px"
-                      >
-                        <input
-                          type="text"
-                          :id="'opcion-' + index + '-' + opcIndex"
-                          :value="opcion.valor"
-                          v-model="question.opciones[opcIndex].valor"
-                          class="form-control"
-                          placeholder="Opción"
-                        />
-                        <button
-                          type="button"
-                          @click="removeOption(index, opcIndex)"
-                          class="btn btn-outline-danger"
-                        >
-                          <i class="bi bi-x fs-2 fw-700"></i>
-                        </button>
-                      </div>
-                    </div>
-                    <span
-                      @click="addOption(index)"
-                      style="cursor: pointer; padding: 12px"
-                    >
-                      <i
-                        style="font-size: 1.5rem"
-                        class="bi bi-plus-circle"
-                      ></i>
-                      <span class="text-muted fs-3">Agregar Opcion</span>
-                    </span>
-                  </div>
+                  <span
+                    @click="addOption(index)"
+                    style="cursor: pointer; padding: 12px"
+                  >
+                    <i style="font-size: 1.5rem" class="bi bi-plus-circle"></i>
+                    <span class="text-muted fs-3">Agregar Opcion</span>
+                  </span>
                 </div>
               </div>
-              <button
-                type="button"
-                @click="addQuestion"
-                class="btn btn-primary me-2"
-              >
-                Agregar Pregunta
-                <i class="bi bi-plus-lg"></i>
-              </button>
-              <button @click="saveForm" class="btn btn-primary ms-2">
-                Guardar Formulario
-                <i class="bi bi-floppy"></i>
-              </button>
-            </form>
+            </div>
+            <button
+              type="button"
+              @click="addQuestion"
+              class="btn btn-primary me-2"
+            >
+              Agregar Pregunta
+              <i class="bi bi-plus-lg"></i>
+            </button>
+            <button @click="submitForm" class="btn btn-primary ms-2">
+              Guardar Formulario
+              <i class="bi bi-floppy"></i>
+            </button>
           </div>
         </div>
       </div>
@@ -181,7 +176,6 @@ export interface SavedForm {
 
 export default defineComponent({
   setup() {
-    const route = useRoute();
     const formId = ref();
     const questions = ref<questions[]>([]);
     const formTitle = ref<string>("");
@@ -210,7 +204,9 @@ export default defineComponent({
     };
 
     const removeOption = (qIndex: number, oIndex: number) => {
-      questions.value[qIndex].opciones.splice(oIndex, 1);
+      if (questions.value[qIndex]?.opciones) {
+        questions.value[qIndex]?.opciones?.splice(oIndex, 1);
+      }
     };
 
     const updateQuestionType = (index: number, newType: string) => {
@@ -229,55 +225,27 @@ export default defineComponent({
 
         // Enviar formData al servidor usando una petición POST para crear el formulario
         const responseForm = await apiApp.post("Cuestionario/", formData);
-        const formId = responseForm.data; // Obtener el ID del formulario creado
+        const formId = responseForm.data.idCuestionario; // Obtener el ID del formulario creado
 
-        // Ahora asociamos las preguntas al formulario usando el ID del formulario
-        const preguntasData = questions.value.map((pregunta) => ({
-          Pregunta: pregunta.pregunta,
-          Tipo: pregunta.tipo,
-          idCuestionario: formId,
-        }));
+        console.log(formId);
 
-        // Enviar las preguntas asociadas al formulario al servidor usando una petición POST
-        await apiApp.post("Pregunta/", preguntasData);
+        // por cada pregunta creamos un objeto con el id del formulario y la pregunta
+        questions.value.map(async (pregunta) => {
+          const jsonOpcion = {
+            opciones: pregunta.opciones,
+            tipo: pregunta.tipo,
+          };
 
-        console.log(preguntasData);
-        // Limpiar el formulario después de enviar los datos correctamente
-        clearForm();
+          const form = {
+            idCuestionario: formId,
+            Pregunta: pregunta.pregunta,
+            Tipo: JSON.stringify(jsonOpcion),
+          };
+          await apiApp.post("Pregunta/", form);
+          console.log("Pregunta guardada correctamente");
+        });
       } catch (error) {
         console.error("Error al enviar formulario:", error);
-      }
-    };
-    const saveForm = async () => {
-      try {
-        // Crear el objeto formData para enviar al servidor
-        const formData = {
-          idCuestionario: formId.value, // ID del formulario que se está actualizando
-          Nombre: formTitle.value,
-          Descripcion: formDesc.value,
-        };
-        // Enviar formData al servidor usando una petición PUT para actualizar el formulario
-        const response = await apiApp.put(
-          `Cuestionario/${formId.value}`,
-          formData
-        );
-
-        const formPreguntas = {
-          Preguntas: questions.value.map((pregunta) => ({
-            Pregunta: pregunta.pregunta,
-            Tipo: pregunta.tipo,
-            opciones: pregunta.opciones, // Si las preguntas tienen opciones, incluirlas también
-          })),
-        };
-        const responseQ = await apiApp.put(
-          `Pregunta/${formId.value}`,
-          formPreguntas
-        );
-
-        console.log("Formulario actualizado correctamente:", response.data);
-        console.log("Formulario actualizado correctamente:", responseQ.data);
-      } catch (error) {
-        console.error("Error al actualizar formulario:", error);
       }
     };
 
@@ -290,7 +258,9 @@ export default defineComponent({
       formId.value = savedForm.idCuestionario;
       formTitle.value = savedForm.Nombre;
       formDesc.value = savedForm.Descripcion;
-      questions.value = [...savedForm.Preguntas];
+      apiApp.get(`Preguntas/${savedForm.idCuestionario}`).then((response) => {
+        console.log(JSON.parse(response.data[1].Tipo));
+      });
     };
     const removeSavedForm = async (index: number) => {
       try {
@@ -328,7 +298,6 @@ export default defineComponent({
       formDesc,
       loadSavedForm,
       savedForms,
-      saveForm,
       removeSavedForm,
       addOption,
       removeOption,
