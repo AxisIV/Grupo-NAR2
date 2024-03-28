@@ -6,6 +6,9 @@
         style="height: 70px; width: 70px; margin-left: 50px"
       />
     </div>
+    <div class="col-md-9">
+      <span>{{ Forms.Nombre }}</span>
+    </div>
   </div>
   <div class="container p-6 mt-10">
     <div class="progress">
@@ -33,18 +36,16 @@
           placeholder="Escribe tu respuesta"
         />
       </div>
-      <div class="form-group mt-5" v-else-if="getQuestionType() === 'radio'">
-        <div
-          class="custom-control custom-radio custom-control-inline"
+      <div class="mt-5 text-center" v-else-if="getQuestionType() === 'radio'">
+        <label
           v-for="(option, index) in getQuestionOptions()"
           :key="index"
+          class="radio-option"
         >
-          <label>
-            <input type="radio" class="option-input radio" name="example" />
-            Radio option
-          </label>
-          <label :for="'option' + index">{{ option.valor }}</label>
-        </div>
+          <input type="radio" name="radio" />
+          <span class="circulo"></span>
+          <span class="fs-3 py-auto">{{ option.valor }}</span>
+        </label>
       </div>
       <div class="d-flex justify-content-center mt-12">
         <button
@@ -83,19 +84,35 @@ interface Question {
   idCuestionario: number;
   Tipo: string;
 }
+interface Form {
+  idCuestionario: number;
+  Nombre: string;
+  Descripcion: string;
+}
+
+interface Respuesta {
+  idCliente: number;
+  idPregunta: number;
+  respuesta: string | number;
+}
 
 export default defineComponent({
   name: "FormAnswer",
   setup() {
     const Preguntas = ref<Question[]>([]);
+    const Forms = ref<Form[]>([]);
     const PreguntaActual = ref(0);
-    const respuestas = ref([]);
+    const respuestas = ref<Respuesta[]>([]);
 
     onMounted(async () => {
       console.log("FormAnswer");
       await apiApp.get("Preguntas/51").then((response) => {
         Preguntas.value = response.data;
         console.log(Preguntas.value);
+      });
+      await apiApp.get("Cuestionario/51").then((response) => {
+        Forms.value = response.data;
+        console.log(Forms.value);
       });
     });
 
@@ -111,6 +128,15 @@ export default defineComponent({
 
     const nextQuestion = () => {
       if (PreguntaActual.value < Preguntas.value.length - 1) {
+        // Guardar la respuesta actual
+        const preguntaActual = Preguntas.value[PreguntaActual.value];
+        const respuestaActual: Respuesta = {
+          idCliente: 1, // Ejemplo,
+          idPregunta: preguntaActual.idPregunta,
+          respuesta: "",
+        };
+        respuestas.value.push(respuestaActual);
+        // Pasar a la siguiente pregunta
         PreguntaActual.value++;
       }
     };
@@ -125,8 +151,14 @@ export default defineComponent({
       PreguntaActual.value = 0;
     };
 
-    const finish = () => {
+    const finish = async () => {
       console.log("Finish");
+      try {
+        await apiApp.post("Respuesta/", respuestas.value);
+        console.log("Respuestas guardadas exitosamente");
+      } catch (error) {
+        console.error("Error al guardar las respuestas:", error);
+      }
     };
 
     const porcentajeProgreso = computed(() => {
@@ -137,6 +169,7 @@ export default defineComponent({
 
     return {
       Preguntas,
+      Forms,
       porcentajeProgreso,
       PreguntaActual,
       getQuestionType,
@@ -159,9 +192,48 @@ export default defineComponent({
   text-align: center;
 }
 
-.radioInput {
-  width: 30px;
+.radio-option {
+  display: inline-block;
+  cursor: pointer;
+  font-family: Arial, sans-serif;
+  margin-right: 20px; /* Espacio entre los botones */
+  margin-top: 5px;
+}
+
+/* Ocultamos el input radio original */
+.radio-option input[type="radio"] {
+  display: none;
+}
+
+/* Estilo para simular el botón de radio no seleccionado */
+.radio-option .circulo {
   height: 30px;
+  width: 30px;
+  border-radius: 50%;
+  display: inline-block;
+  vertical-align: middle;
+  border: 2px solid #cccccc;
   margin-right: 10px;
+  transition: border 0.3s;
+}
+
+/* Estilo para cuando el botón de radio está seleccionado */
+.radio-option input[type="radio"]:checked + .circulo {
+  border: 6px solid #20c7b1; /* Ajusta el tamaño del borde seleccionado */
+}
+
+/* El pseudo-elemento para el signo 'X' */
+.radio-option input[type="radio"]:checked + .circulo:before {
+  color: white;
+  position: absolute;
+  font-size: 18px; /* Tamaño del símbolo */
+  line-height: 14px; /* Altura de la línea para centrar verticalmente el símbolo */
+  margin-left: 5px; /* Ajuste horizontal del símbolo */
+  margin-top: 1px; /* Ajuste vertical del símbolo */
+}
+
+/* Estilo adicional para cambiar el fondo cuando se pasa el mouse */
+.radio-option .circulo:hover {
+  background-color: #f1f1f1;
 }
 </style>
