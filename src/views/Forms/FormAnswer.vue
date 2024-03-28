@@ -77,6 +77,7 @@
 <script lang="ts">
 import { apiApp } from "@/core/api/apiApp";
 import { defineComponent, onMounted, ref, computed } from "vue";
+import { useRoute } from "vue-router";
 
 interface Question {
   idPregunta: number;
@@ -103,15 +104,16 @@ export default defineComponent({
     const Forms = ref<Form[]>([]);
     const PreguntaActual = ref(0);
     const respuestas = ref<Respuesta[]>([]);
+    const route = useRoute();
 
     onMounted(async () => {
       console.log("FormAnswer");
-      await apiApp.get("Preguntas/51").then((response) => {
+      await apiApp.get("Preguntas/" + route.params.id).then((response) => {
         Preguntas.value = response.data;
         console.log(Preguntas.value);
       });
       await apiApp.get("Cuestionario/51").then((response) => {
-        Forms.value = response.data;
+        Forms.value = response.data[0];
         console.log(Forms.value);
       });
     });
@@ -126,7 +128,7 @@ export default defineComponent({
       return tipo.opciones;
     };
 
-    const nextQuestion = () => {
+    const nextQuestion = async () => {
       if (PreguntaActual.value < Preguntas.value.length - 1) {
         // Guardar la respuesta actual
         const preguntaActual = Preguntas.value[PreguntaActual.value];
@@ -135,6 +137,7 @@ export default defineComponent({
           idPregunta: preguntaActual.idPregunta,
           respuesta: "",
         };
+        await apiApp.post("Respuesta/", respuestaActual);
         respuestas.value.push(respuestaActual);
         // Pasar a la siguiente pregunta
         PreguntaActual.value++;
@@ -142,6 +145,7 @@ export default defineComponent({
     };
 
     const previousQuestion = () => {
+      apiApp.get("Respuesta/:idPregunta");
       if (PreguntaActual.value > 0) {
         PreguntaActual.value--;
       }

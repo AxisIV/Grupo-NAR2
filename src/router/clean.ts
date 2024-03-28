@@ -87,7 +87,7 @@ const routes: Array<RouteRecordRaw> = [
     ],
   },
   {
-    path: "/Form",
+    path: "/Form/:id",
     component: () => import("@/views/Forms/FormAnswer.vue"),
   },
   {
