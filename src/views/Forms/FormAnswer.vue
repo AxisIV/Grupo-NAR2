@@ -1,13 +1,20 @@
 <template>
-  <div class="row card">
+  <div class="row">
     <div class="col-md-3">
       <img
         src="https://www.mlsvallarta.com/wp-content/uploads/mls-images/13198/GrupoNAR_Logotipo_2Rojo-340x340-c.jpg"
         style="height: 70px; width: 70px; margin-left: 50px"
       />
     </div>
-    <div class="col-md-9">
-      <span>{{ Forms.Nombre }}</span>
+    <div class="col-md-6">
+      <span class="titulo">{{ Forms.Nombre }}</span>
+    </div>
+    <div class="col-md-3">
+      <button class="redes"><i class="bi bi-whatsapp"></i></button>
+      <button class="redes">
+        <i class="bi bi-instagram"></i>
+      </button>
+      <button class="redes"><i class="bi bi-facebook"></i></button>
     </div>
   </div>
   <div class="container p-6 mt-10">
@@ -33,6 +40,7 @@
         <input
           type="text"
           class="form-control"
+          v-model="respuestaTexto"
           placeholder="Escribe tu respuesta"
         />
       </div>
@@ -42,7 +50,12 @@
           :key="index"
           class="radio-option"
         >
-          <input type="radio" name="radio" />
+          <input
+            type="radio"
+            name="respuestaRadio"
+            :value="option.valor"
+            v-model="respuestaSeleccionada"
+          />
           <span class="circulo"></span>
           <span class="fs-3 py-auto">{{ option.valor }}</span>
         </label>
@@ -105,6 +118,8 @@ export default defineComponent({
     const PreguntaActual = ref(0);
     const respuestas = ref<Respuesta[]>([]);
     const route = useRoute();
+    const respuestaTexto = ref("");
+    const respuestaSeleccionada = ref("");
 
     onMounted(async () => {
       console.log("FormAnswer");
@@ -132,20 +147,47 @@ export default defineComponent({
       if (PreguntaActual.value < Preguntas.value.length - 1) {
         // Guardar la respuesta actual
         const preguntaActual = Preguntas.value[PreguntaActual.value];
-        const respuestaActual: Respuesta = {
-          idCliente: 1, // Ejemplo,
-          idPregunta: preguntaActual.idPregunta,
-          respuesta: "",
-        };
-        await apiApp.post("Respuesta/", respuestaActual);
-        respuestas.value.push(respuestaActual);
+        let respuestaActual: Respuesta;
+
+        if (getQuestionType() === "text") {
+          // Respuesta de tipo texto
+          respuestaActual = {
+            idCliente: 1,
+            idPregunta: preguntaActual.idPregunta,
+            respuesta: respuestaTexto.value, // Utilizamos la variable del input de texto
+          };
+        } else if (getQuestionType() === "radio") {
+          // Respuesta de opciones de radio
+          respuestaActual = {
+            idCliente: 1,
+            idPregunta: preguntaActual.idPregunta,
+            respuesta: respuestaSeleccionada.value, // Utilizamos la variable del input de radio
+          };
+        }
+
+        try {
+          await apiApp.post("Respuesta/", respuestaActual);
+          respuestas.value.push(respuestaActual);
+        } catch (error) {
+          console.error("Error al guardar la respuesta:", error);
+        }
+
         // Pasar a la siguiente pregunta
         PreguntaActual.value++;
       }
     };
 
-    const previousQuestion = () => {
-      apiApp.get("Respuesta/:idPregunta");
+    const previousQuestion = async () => {
+      // Obtener la respuesta de la pregunta actual
+      const preguntaActual = Preguntas.value[PreguntaActual.value];
+      const idPreguntaActual = preguntaActual.idPregunta;
+      try {
+        const response = await apiApp.get(`Respuesta/${idPreguntaActual}`);
+        console.log("Respuesta de la pregunta actual:", response.data);
+      } catch (error) {
+        console.error("Error al obtener la respuesta:", error);
+      }
+
       if (PreguntaActual.value > 0) {
         PreguntaActual.value--;
       }
@@ -182,6 +224,8 @@ export default defineComponent({
       previousQuestion,
       start,
       finish,
+      respuestaTexto,
+      respuestaSeleccionada,
     };
   },
 });
@@ -195,7 +239,29 @@ export default defineComponent({
   margin-top: 5rem;
   text-align: center;
 }
+.titulo {
+  display: flex; /* Establece el contenedor como flexible */
+  align-items: center; /* Centra verticalmente */
+  height: 70px;
+  text-align: center;
+  vertical-align: middle;
+  font-size: 20px;
+}
+.redes {
+  padding: 10px; /* Espacio interno alrededor del icono */
+  border: none; /* Eliminar borde del botón */
+  background-color: transparent; /* Fondo transparente */
+  cursor: pointer; /* Cambiar cursor al pasar por encima */
+  transition: background-color 0.3s ease; /* Transición suave */
+}
+.redes:hover {
+  background-color: #f0f0f0; /* Cambiar color de fondo al pasar el mouse */
+}
 
+.bi {
+  font-size: 24px; /* Tamaño del ícono */
+  vertical-align: middle; /* Alinear verticalmente */
+}
 .radio-option {
   display: inline-block;
   cursor: pointer;
